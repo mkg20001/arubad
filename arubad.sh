@@ -51,7 +51,7 @@ tryLogin() {
 
   # TODO: guest email login (just email field)
 
-  curl -skLc "$JAR" --header "Referrer: $redir" --data "user=$ARUBA_USER" --data "password=$ARUBA_PW" --data "cmd=authenticate" --data "agreementAck=Accept" "$post"
+  curl -skLc "$JAR" --header "Referrer: $redir" --data "email=" --data "user=$ARUBA_USER" --data "password=$ARUBA_PW" --data "cmd=authenticate" --data "agreementAck=Accept" "$post"
   ex=$?
 
   if [ $ex -ne 0 ]; then
