@@ -25,7 +25,7 @@ tryLogin() {
     return
   fi
 
-  extracted=$(echo "$captiveReturn" | sed -r "s|.+(http:\/\/detectportal.+)'.+|\1|g")
+  extracted=$(echo "$captiveReturn" | grep detectportal | head -n 1 | sed -r "s|.+(http:\/\/detectportal.+)'.+|\1|g")
 
   if [ -z "$extracted" ]; then
     log "ERROR: Couldn't extract captive url! Not aruba captive!"
@@ -64,6 +64,13 @@ tryLogin() {
 }
 
 inst() {
+  SELF=$(readlink -f "$0")
+  SERV=${SELF/".sh"/".service"}
+
+  if [ ! -e "$SERV" ]; then
+    die "This version appears to be already installed. To update simple update the cloned repo and run the script from the repo."
+  fi
+
   if [ $(id -u) -ne 0 ]; then
     die "Not root"
   fi
@@ -76,14 +83,12 @@ inst() {
 
   echo "ARUBA_USER='$1'
 ARUBA_PW='$2'" > /etc/arubad
-  chmod 005 /etc/arubad
+  chmod 500 /etc/arubad
   chown root:root /etc/arubad
 
   log "Installing arubad.service..."
 
-  SELF=$(readlink -f "$0")
   instFile "$SELF" "/usr/bin/arubad"
-  SERV=${SELF/".sh"/".service"}
   instFile "$SERV" "/etc/systemd/system/arubad.service"
 
   log "Starting arubad.service..."
