@@ -1,0 +1,12 @@
+[Unit]
+Description=Arubanetworks Captive Login Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/arubad run
+Restart=always
+EnvironmentFile=/etc/arubad
+
+[Install]
+WantedBy=multi-user.target
