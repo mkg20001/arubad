@@ -61,8 +61,9 @@ CHECK_INTERVAL=60" > /etc/arubad
 
   log "Installing arubad.service..."
 
-  instFile "$0" "/usr/bin/arubad"
-  SERV=${0/".sh"$/".service"}
+  SELF=$(readlink -f "$0")
+  instFile "$SELF" "/usr/bin/arubad"
+  SERV=${SELF/".sh"/".service"}
   instFile "$SERV" "/etc/systemd/system/arubad.service"
 
   log "Starting arubad.service..."
