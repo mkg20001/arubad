@@ -14,8 +14,11 @@ instFile() {
 }
 
 tryLogin() {
+  JAR="/tmp/arubad.cookiejar.txt"
+  rm -f "$JAR"
+
   log "Detecting captive portal..."
-  captiveReturn=$(curl -s http://detectportal.firefox.com/)
+  captiveReturn=$(curl -sc "$JAR" http://detectportal.firefox.com/)
 
   if [ "$captiveReturn" == "success" ]; then
     log "No captive portal found! Yay!"
@@ -33,13 +36,31 @@ tryLogin() {
 
   log "Follow redirect..."
 
-  redir=$(curl -skIL "$extracted" | grep ^Location | tail -n 1 | sed "s|^Location: ||g")
+  redir=$(curl -skILc "$JAR" "$extracted" | grep ^Location | tail -n 1 | sed "s|^Location: ||g")
 
   if [ -z "$redir" ]; then
     log "ERROR: Failed to follow"
+    return
   fi
 
-  # TODO: add more stuff like actually logging in
+  log "Followed to $URL"
+  post=$(echo "$redir" | sed "s|\\?.+||g")
+  log "Posting to $post"
+
+  log "Logging in as $ARUBA_USER..."
+
+  # TODO: guest email login (just email field)
+
+  curl -skLc "$JAR" --header "Referrer: $redir" --data "user=$ARUBA_USER" --data "password=$ARUBA_PW" --data "cmd=authenticate" --data "agreementAck=Accept" "$post"
+  ex=$?
+
+  if [ $ex -ne 0 ]; then
+    log "ERROR: Login failed"
+    return
+  fi
+
+  log "Checking again..."
+  tryLogin
 }
 
 inst() {
@@ -54,8 +75,7 @@ inst() {
   log "Writing config /etc/arubad..."
 
   echo "ARUBA_USER='$1'
-ARUBA_PW='$2'
-CHECK_INTERVAL=60" > /etc/arubad
+ARUBA_PW='$2'" > /etc/arubad
   chmod 005 /etc/arubad
   chown root:root /etc/arubad
 
