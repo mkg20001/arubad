@@ -77,13 +77,16 @@ CHECK_INTERVAL=60" > /etc/arubad
 watchdog() {
   while read line; do
     intf=$(echo "$line" | sed -r "s|(^.+): .+|\1|g")
+    if [ ! -z "$NM_DEBUG" ]; then
+      log "DEBUG@$intf: $line"
+    fi
+
     case "$line" in
-      [a-z0-9._-]*": connected")
-        log "Detected new connection on network interface $intf, check"
+      [a-z0-9._-]*": connected"|[a-z0-9._-]*": disconnected")
+        log "Detected connection change on network interface $intf, check"
+        log "[CAPTIVE]"
         tryLogin
-        ;;
-      *)
-        log "DEBUG@$intf: $line"
+        log "[/CAPTIVE]"
         ;;
     esac
   done
