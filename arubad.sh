@@ -15,10 +15,11 @@ instFile() {
 
 tryLogin() {
   JAR="/tmp/arubad.cookiejar.txt"
+  COPT=(-s -k -c "$JAR" -b "$JAR" -H "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:63.0) Gecko/20100101 Firefox/63.0")
   rm -f "$JAR"
 
   log "Detecting captive portal..."
-  captiveReturn=$(curl -sc "$JAR" http://detectportal.firefox.com/)
+  captiveReturn=$(curl "${COPT[@]}" http://detectportal.firefox.com/)
 
   if [ "$captiveReturn" == "success" ]; then
     log "No captive portal found! Yay!"
@@ -36,7 +37,7 @@ tryLogin() {
 
   log "Follow redirect..."
 
-  redir=$(curl -skILc "$JAR" "$extracted" | grep ^Location | tail -n 1 | sed "s|^Location: ||g")
+  redir=$(curl "${COPT[@]}" -IL "$extracted" | grep ^Location | tail -n 1 | sed "s|^Location: ||g")
 
   if [ -z "$redir" ]; then
     log "ERROR: Failed to follow"
@@ -44,23 +45,35 @@ tryLogin() {
   fi
 
   log "Followed to $URL"
-  post=$(echo "$redir" | sed "s|\\?.+||g")
+  post=$(echo "$redir" | sed -r "s|\\?.+||g")
   log "Posting to $post"
 
   log "Logging in as $ARUBA_USER..."
 
   # TODO: guest email login (just email field)
 
-  curl -skLc "$JAR" --header "Referrer: $redir" --data "email=" --data "user=$ARUBA_USER" --data "password=$ARUBA_PW" --data "cmd=authenticate" --data "agreementAck=Accept" "$post"
+  out=$(curl -L "${COPT[@]}" \
+    -H "Referrer: $redir" \
+    --data "user=$ARUBA_USER&password=$ARUBA_PW&email=&cmd=authenticate&agreementAck=Accept" \
+    "$post")
   ex=$?
 
   if [ $ex -ne 0 ]; then
-    log "ERROR: Login failed"
+    log "ERROR: Login failed with $ex"
     return
   fi
 
-  log "Checking again..."
-  tryLogin
+  if [[ "$out" == *"Authentication successful"* ]]; then
+    log "Auth seems ok"
+
+    sleep 2s
+
+    log "Checking again..."
+    tryLogin
+  else
+    log "ERROR: Auth not successfull"
+    return
+  fi
 }
 
 inst() {
@@ -130,9 +143,12 @@ run() {
 
 main() {
   case "$1" in
-    install)
+    "install"|"i")
       shift
       inst "$@"
+      ;;
+    "login"|"l")
+      tryLogin
       ;;
     "run"|"")
       run
@@ -141,6 +157,7 @@ main() {
       echo "Usage:"
       echo " $0 install <username> <password> # installs as systemd daemon"
       echo " $0 run # just runs, reads creds from \$ARUBA_USER and \$ARUBA_PW"
+      echo " $0 login # just run login routine, creds need also be set"
       exit 2
       ;;
   esac

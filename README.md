@@ -2,8 +2,6 @@
 
 Daemon that automatically logs you in to arubanetworks.com captive portals
 
-**WIP: I'll test this script once I'll take my laptop to school again, also it's not finished yet**
-
 # Why?
 
 My school uses that, and my laziness got me to create a script for that (It requires typing in login credentials. Too! Much! Work!)
