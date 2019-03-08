@@ -113,6 +113,18 @@ ARUBA_PW='$2'" > /etc/arubad
   log "DONE"
 }
 
+uninstall() {
+  if [ $(id -u) -ne 0 ]; then
+    die "Not root"
+  fi
+
+  log "Uninstalling arubad..."
+
+  systemctl stop arubad
+  systemctl disable arubad
+  rm -fv /usr/bin/arubad /etc/systemd/system/arubad.service /etc/arubad
+}
+
 watchdog() {
   while read line; do
     intf=$(echo "$line" | sed -r "s|(^.+): .+|\1|g")
@@ -153,9 +165,13 @@ main() {
     "run"|"")
       run
       ;;
+    "uninstall"|"u")
+      uninstall
+      ;;
     *)
       echo "Usage:"
       echo " $0 install <username> <password> # installs as systemd daemon"
+      echo " $0 uninstall"
       echo " $0 run # just runs, reads creds from \$ARUBA_USER and \$ARUBA_PW"
       echo " $0 login # just run login routine, creds need also be set"
       exit 2
